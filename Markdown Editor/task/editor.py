@@ -1,11 +1,17 @@
 from typing import List
+import markdown
+import webbrowser
+import tempfile
+import os
+import tkinter as tk
+from tkinter import filedialog, messagebox
 
 DATA_FILE = "output.md"
 
 
 def formatter_help() -> None:
     print("Available formatters: plain bold italic header link inline-code ordered-list unordered-list new-line")
-    print("Special commands: !help !done")
+    print("Special commands: !help !done !preview")
 
 
 def formatter_header() -> str:
@@ -77,10 +83,19 @@ def get_input(prompt: str) -> str:
     return input(prompt).strip()
 
 
+def preview_markdown(markdown_text: str) -> None:
+    html_content = markdown.markdown(markdown_text)
+    with tempfile.NamedTemporaryFile('w', delete=False, suffix='.html', encoding='utf-8') as tmp:
+        tmp.write(f"<html><body>{html_content}</body></html>")
+        tmp_path = tmp.name
+    webbrowser.open(f"file://{tmp_path}")
+
+
 # Formatter dispatcher
 formatters = {
     "!help": "help",
     "!done": "done",
+    "!preview": preview_markdown,
     "plain": formatter_plaintext,
     "bold": formatter_bold,
     "italic": formatter_italic,
@@ -91,6 +106,7 @@ formatters = {
     "ordered-list": lambda: formatter_ordered_list(True),
     "unordered-list": lambda: formatter_ordered_list(False),
 }
+
 
 def main():
     output = []
@@ -106,6 +122,9 @@ def main():
 
         elif user_input == "!help":
             formatter_help()
+
+        elif user_input == "!preview":
+            preview_markdown("".join(output))
 
         elif user_input in formatters:
             result = formatters[user_input]()
