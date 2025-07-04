@@ -1,10 +1,7 @@
+import tempfile
+import webbrowser
 from typing import List
 import markdown
-import webbrowser
-import tempfile
-import os
-import tkinter as tk
-from tkinter import filedialog, messagebox
 
 DATA_FILE = "output.md"
 
