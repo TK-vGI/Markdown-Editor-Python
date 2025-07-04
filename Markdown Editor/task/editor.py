@@ -1,14 +1,73 @@
-import tempfile
-import webbrowser
 from typing import List
+import tkinter as tk
+from tkinter import filedialog, messagebox
 import markdown
+import webbrowser
+import tempfile
+
 
 DATA_FILE = "output.md"
 
 
+class MarkdownEditorGUI:
+    def __init__(self, initial_content=""):
+        self.root = tk.Tk()
+        self.root.title("Markdown Editor")
+
+        self.input_text = tk.Text(self.root, wrap="word", font=("Consolas", 12))
+        self.input_text.pack(expand=True, fill="both")
+        self.input_text.insert("1.0", initial_content)
+
+        self.updated_content = initial_content
+        self._create_toolbar()
+
+    def _create_toolbar(self):
+        toolbar = tk.Frame(self.root)
+        toolbar.pack(fill="x")
+
+        tk.Button(toolbar, text="Bold", command=lambda: self.apply_formatter("bold")).pack(side="left")
+        tk.Button(toolbar, text="Italic", command=lambda: self.apply_formatter("italic")).pack(side="left")
+        tk.Button(toolbar, text="Header", command=lambda: self.apply_formatter("header")).pack(side="left")
+        tk.Button(toolbar, text="Preview", command=self.preview).pack(side="left")
+        tk.Button(toolbar, text="Save", command=self.save_file).pack(side="left")
+        tk.Button(toolbar, text="Close", command=self.close_and_return).pack(side="left")
+
+    def apply_formatter(self, fmt):
+        text = self.input_text.get("sel.first", "sel.last") if self.input_text.tag_ranges("sel") else ""
+        if fmt == "bold":
+            self.input_text.insert(tk.INSERT, f"**{text}**")
+        elif fmt == "italic":
+            self.input_text.insert(tk.INSERT, f"*{text}*")
+        elif fmt == "header":
+            self.input_text.insert(tk.INSERT, f"# {text}\n")
+
+    def preview(self):
+        md = self.input_text.get("1.0", tk.END)
+        html = markdown.markdown(md)
+        with tempfile.NamedTemporaryFile('w', delete=False, suffix='.html', encoding='utf-8') as tmp:
+            tmp.write(f"<html><body>{html}</body></html>")
+            webbrowser.open(f"file://{tmp.name}")
+
+    def save_file(self):
+        content = self.input_text.get("1.0", tk.END)
+        path = filedialog.asksaveasfilename(defaultextension=".md", filetypes=[("Markdown files", "*.md")])
+        if path:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(content)
+            messagebox.showinfo("Saved", f"File saved to {path}")
+
+    def close_and_return(self):
+        self.updated_content = self.input_text.get("1.0", tk.END)
+        self.root.destroy()
+
+    def run(self):
+        self.root.mainloop()
+        return self.updated_content
+
+
 def formatter_help() -> None:
     print("Available formatters: plain bold italic header link inline-code ordered-list unordered-list new-line")
-    print("Special commands: !help !done !preview")
+    print("Special commands: !help !done !preview !gui")
 
 
 def formatter_header() -> str:
@@ -93,6 +152,7 @@ formatters = {
     "!help": "help",
     "!done": "done",
     "!preview": preview_markdown,
+    "!gui": "gui",
     "plain": formatter_plaintext,
     "bold": formatter_bold,
     "italic": formatter_italic,
@@ -122,6 +182,14 @@ def main():
 
         elif user_input == "!preview":
             preview_markdown("".join(output))
+
+        elif user_input == "!gui":
+            print("Launching GUI Markdown Editor...")
+            gui = MarkdownEditorGUI("".join(output))
+            updated = gui.run()
+            output = [updated]
+            print("Updated content loaded from GUI:")
+            print(updated)
 
         elif user_input in formatters:
             result = formatters[user_input]()
